@@ -7,8 +7,24 @@ public abstract class PrimeChecker {
     private final Random random = new Random();
 
 
-    public abstract boolean isPrime(BigInteger digit, double precision);
+    public boolean isPrime(BigInteger digitToCheck, double precision) {
+        this.checkPrecision(precision);
+        this.checkDigit(digitToCheck);
 
+        if (digitToCheck.equals(BigInteger.TWO) || digitToCheck.equals(BigInteger.valueOf(3))) {
+            return true;
+        }
+
+        int n = this.getIterationNumber(precision);
+        for (int i = 0; i < n; i++) {
+            if (isNotPrime(digitToCheck, precision)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    protected abstract boolean isNotPrime(BigInteger digitToCheck, double precision);
 
     protected int getIterationNumber(double precision) {
         int iterationNumber = -log2(1 - precision);
@@ -20,11 +36,31 @@ public abstract class PrimeChecker {
     }
 
 
-    protected BigInteger getPositiveRandomDigit(BigInteger maxDigit) {
+    protected BigInteger getPositiveRandomDigit(BigInteger minDigit, BigInteger maxDigit) {
         BigInteger randomDigit = new BigInteger(maxDigit.bitLength(), random);
-        while (randomDigit.compareTo(maxDigit) > 0) {
+        while (randomDigit.compareTo(minDigit) < 0 || randomDigit.compareTo(maxDigit) > 0) {
             randomDigit = new BigInteger(maxDigit.bitLength(), random);
         }
         return randomDigit;
+    }
+
+
+    protected void checkPrecision(double precision) {
+        if (precision < 0.5 || precision > 1.0) {
+            throw new IllegalArgumentException("Wrong precision");
+        }
+    }
+
+    protected void checkDigit(BigInteger digitToCheck) {
+        if (digitToCheck.compareTo(BigInteger.TWO) < 0) {
+            throw new IllegalArgumentException("Wrong digit. Digit < 2");
+        }
+    }
+
+    protected BigInteger gcd(BigInteger a, BigInteger b) {
+        if (a.equals(BigInteger.ZERO)) {
+            return b;
+        }
+        return gcd(b.mod(a), a);
     }
 }

@@ -32,7 +32,13 @@ class RSAMathImplTest {
         answer = rsaMath.getJacobiSymbol(BigInteger.valueOf(219), BigInteger.valueOf(383));
         assert (answer == 1);
 
-        answer = rsaMath.getLegendreSymbol(BigInteger.valueOf(16), BigInteger.valueOf(59));
+        answer = rsaMath.getJacobiSymbol(BigInteger.valueOf(16), BigInteger.valueOf(59));
+        assert (answer == 1);
+
+        answer = rsaMath.getJacobiSymbol(BigInteger.valueOf(11), BigInteger.valueOf(19));
+        assert (answer == 1);
+
+        answer = rsaMath.getJacobiSymbol(BigInteger.valueOf(5), BigInteger.valueOf(19));
         assert (answer == 1);
     }
 }
