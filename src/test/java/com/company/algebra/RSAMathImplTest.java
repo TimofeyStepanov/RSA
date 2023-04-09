@@ -1,5 +1,7 @@
 package com.company.algebra;
 
+import com.company.algebra.residue.RSAMath;
+import com.company.algebra.residue.impl.RSAMathImpl;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;

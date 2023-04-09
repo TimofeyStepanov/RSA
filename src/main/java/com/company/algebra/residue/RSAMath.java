@@ -1,4 +1,4 @@
-package com.company.algebra;
+package com.company.algebra.residue;
 
 import java.math.BigInteger;
 

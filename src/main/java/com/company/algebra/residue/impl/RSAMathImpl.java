@@ -1,4 +1,7 @@
-package com.company.algebra;
+package com.company.algebra.residue.impl;
+
+
+import com.company.algebra.residue.RSAMath;
 
 import java.math.BigInteger;
 
@@ -48,6 +51,7 @@ public final class RSAMathImpl implements RSAMath {
                     .multiply(p.subtract(BigInteger.ONE).divide(BigInteger.TWO));
 
             answer = recursionCountJacobiSymbol(p, a);
+
 
             if (powMinusOne(degree) == -1) {
                 answer = answer.negate();
