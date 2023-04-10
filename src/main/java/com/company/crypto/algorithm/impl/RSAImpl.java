@@ -4,11 +4,15 @@ import com.company.algebra.prime.PrimeChecker;
 import com.company.algebra.prime.PrimeCheckerFabric;
 import com.company.algebra.prime.PrimeCheckerType;
 import com.company.crypto.algorithm.RSA;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigInteger;
+import java.security.PublicKey;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Objects;
+import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
 
@@ -29,58 +33,77 @@ public final class RSAImpl extends RSA {
     }
 
     private final OpenKeyGenerator openKeyGenerator;
-    private OpenKey openKey;
-    private PrivateKey privateKey;
+    private BigInteger p;
+    private BigInteger q;
+    private BigInteger n;
+    private BigInteger e;
+    private BigInteger d;
 
     private RSAImpl(PrimeCheckerType type, double precision, int primeNumberLength) {
         this.openKeyGenerator = new OpenKeyGenerator(type, precision, primeNumberLength);
-        this.openKey = this.openKeyGenerator.generateOpenKey();
+        this.openKeyGenerator.generateOpenKey();
+        this.openKeyGenerator.generatePrivateKey();
     }
 
     @Override
     public byte[] encode(byte[] array, BigInteger exponent, BigInteger modulo) {
-        Objects.requireNonNull(array);
-        if (array.length == 0) {
-            return new byte[0];
-        }
-
-        BigInteger message = new BigInteger(array);
-
-        return new byte[0];
+        return doOperation(array, exponent, modulo);
     }
 
     @Override
     public byte[] decode(byte[] array) {
+        return doOperation(array, this.d, this.n);
+    }
+
+    private byte[] doOperation(byte[] array, BigInteger exponent, BigInteger modulo) {
         Objects.requireNonNull(array);
         if (array.length == 0) {
             return new byte[0];
         }
 
-        return new byte[0];
+        byte[] copyArray = Arrays.copyOf(array, array.length);
+        reverseArray(copyArray);
+
+        BigInteger message = new BigInteger(copyArray);
+        BigInteger newMessage = message.modPow(exponent, modulo);
+        byte[] decodedMessageBytes = newMessage.toByteArray();
+        reverseArray(decodedMessageBytes);
+
+        return decodedMessageBytes;
     }
 
     @Override
     public void regenerateOpenKey() {
-        this.openKey = this.openKeyGenerator.generateOpenKey();
+        this.openKeyGenerator.generateOpenKey();
+        this.openKeyGenerator.generatePrivateKey();
     }
 
     @Override
     public BigInteger getExponent() {
-        return this.openKey.getExponent();
+        return this.e;
     }
 
     @Override
     public BigInteger getModulo() {
-        return this.openKey.getModulo();
+        return this.n;
     }
 
+    private void reverseArray(byte[] array) {
+        for (int i = 0; i < array.length / 2; i++) {
+            byte tmp = array[i];
+            array[i] = array[array.length - 1 - i];
+            array[array.length - 1 - i] = tmp;
+        }
+    }
 
-    static class OpenKeyGenerator {
+    class OpenKeyGenerator {
         private static final int MIN_NUMBER_OF_DIFFERENT_BITS = 256;
 
         private final PrimeChecker primeChecker;
         private final double precision;
         private final int primeNumberLength;
+        private final Random random = new Random();
+
 
         public OpenKeyGenerator(PrimeCheckerType type, double precision, int primeNumberLength) {
             this.primeChecker = PrimeCheckerFabric.getInstance(type);
@@ -88,16 +111,18 @@ public final class RSAImpl extends RSA {
             this.primeNumberLength = primeNumberLength;
         }
 
-        public OpenKey generateOpenKey() {
-            BigInteger p = generateP();
-            BigInteger q = generateQ();
 
-            log.info("Generate p:" + p);
-            log.info("Generate q:" + q);
+        public void generateOpenKey() {
+            RSAImpl.this.p = generateP();
+            RSAImpl.this.q = generateQ();
+            RSAImpl.this.n = p.multiply(q);
 
-            BigInteger n = p.multiply(q);
+            log.info("Generate p:" + RSAImpl.this.p);
+            log.info("Generate q:" + RSAImpl.this.q);
 
-            return new OpenKey();
+            BigInteger eulerFunctionValue = p.subtract(BigInteger.ONE).multiply(q.subtract(BigInteger.ONE));
+            RSAImpl.this.e = generateOpenExponent(eulerFunctionValue);
+            log.info("Generate e:" + RSAImpl.this.e);
         }
 
         private BigInteger generateP() {
@@ -105,17 +130,17 @@ public final class RSAImpl extends RSA {
             pBitSet.set(0, true);
             pBitSet.set(primeNumberLength - 1, true);
             pBitSet.set(primeNumberLength - 1 - MIN_NUMBER_OF_DIFFERENT_BITS, primeNumberLength - 1);
-            return generateRandomEvenDigit(pBitSet);
+            return generateRandomEvenDigitFromBitSet(pBitSet);
         }
 
         private BigInteger generateQ() {
             BitSet qBitSet = new BitSet(primeNumberLength);
             qBitSet.set(0, true);
             qBitSet.set(primeNumberLength - 1, true);
-            return generateRandomEvenDigit(qBitSet);
+            return generateRandomEvenDigitFromBitSet(qBitSet);
         }
 
-        private BigInteger generateRandomEvenDigit(BitSet bitSet) {
+        private BigInteger generateRandomEvenDigitFromBitSet(BitSet bitSet) {
             BigInteger randomEvenDigit;
             do {
                 int i = 1;
@@ -130,12 +155,48 @@ public final class RSAImpl extends RSA {
             return randomEvenDigit;
         }
 
-        private void reverseArray(byte[] array) {
-            for (int i = 0; i < array.length / 2; i++) {
-                byte tmp = array[i];
-                array[i] = array[array.length - 1 - i];
-                array[array.length - 1 - i] = tmp;
-            }
+        private BigInteger generateOpenExponent(BigInteger valueOfEulerFunction) {
+            BigInteger randomDigit;
+            BigInteger gcd;
+            do {
+                randomDigit = generateRandomDigit(BigInteger.ONE, valueOfEulerFunction);
+                gcd = getGCD(randomDigit, valueOfEulerFunction);
+            } while (!gcd.equals(BigInteger.ONE));
+            return randomDigit;
         }
+
+        private BigInteger getGCD(BigInteger firstDigit, BigInteger secondDigit) {
+            if (secondDigit.equals(BigInteger.ZERO)) {
+                return firstDigit;
+            }
+            return getGCD(secondDigit, firstDigit.mod(secondDigit));
+        }
+
+        private BigInteger generateRandomDigit(BigInteger minDigit, BigInteger maxDigit) {
+            BigInteger randomDigit = new BigInteger(maxDigit.bitLength(), random);
+            while (randomDigit.compareTo(minDigit) <= 0 || randomDigit.compareTo(maxDigit) >= 0) {
+                randomDigit = new BigInteger(maxDigit.bitLength(), random);
+            }
+            return randomDigit;
+        }
+
+
+        public void generatePrivateKey() {
+            BigInteger eulerFunctionValue = p.subtract(BigInteger.ONE).multiply(q.subtract(BigInteger.ONE));
+            RSAImpl.this.d = RSAImpl.this.e.modInverse(eulerFunctionValue);
+            log.info("Generate d:" + d);
+            // TODO: обратное
+        }
+
+        @AllArgsConstructor
+        class EEATuple {
+            BigInteger d;
+            BigInteger x;
+            BigInteger y;
+        }
+
+//        EEATuple EEA(BigInteger a, BigInteger b) {
+//
+//        }
     }
 }

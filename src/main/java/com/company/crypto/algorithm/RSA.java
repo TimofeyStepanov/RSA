@@ -1,23 +1,24 @@
 package com.company.crypto.algorithm;
 
 import lombok.Data;
+import lombok.RequiredArgsConstructor;
 
 import java.math.BigInteger;
 
 public abstract class RSA {
-    @Data
-    protected static class OpenKey {
-        private BigInteger exponent;
-        private BigInteger modulo;
-    }
-
-    @Data
-    protected static class PrivateKey {
-        private BigInteger p;
-        private BigInteger q;
-        private BigInteger n;
-        private BigInteger d;
-    }
+//    @Data
+//    protected static class OpenKey {
+//        private final BigInteger exponent;
+//        private final BigInteger modulo;
+//    }
+//
+//    @Data
+//    protected static class PrivateKey {
+//        private final BigInteger p;
+//        private final BigInteger q;
+//        private final BigInteger n;
+//        private final BigInteger d;
+//    }
 
     public abstract byte[] encode(byte[] array, BigInteger exponent, BigInteger modulo);
     public abstract byte[] decode(byte[] array);
