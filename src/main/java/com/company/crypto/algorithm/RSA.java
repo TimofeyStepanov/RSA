@@ -1,13 +1,32 @@
 package com.company.crypto.algorithm;
 
+import com.company.algebra.prime.PrimeChecker;
+import com.company.algebra.prime.PrimeCheckerFabric;
+import com.company.algebra.prime.PrimeCheckerType;
+import lombok.Data;
+
 import java.math.BigInteger;
 
-public interface RSA {
-    byte[] encode(byte[] array, BigInteger exponent, BigInteger modulo);
-    byte[] decode(byte[] array);
+public abstract class RSA {
+    @Data
+    protected static class OpenKey {
+        private BigInteger exponent;
+        private BigInteger modulo;
+    }
 
-    void regenerateOpenKey();
+    @Data
+    protected static class PrivateKey {
+        private BigInteger p;
+        private BigInteger q;
+        private BigInteger n;
+        private BigInteger d;
+    }
 
-    BigInteger getExponent();
-    BigInteger getModulo();
+    public abstract byte[] encode(byte[] array, BigInteger exponent, BigInteger modulo);
+    public abstract byte[] decode(byte[] array);
+
+    public abstract void regenerateOpenKey();
+
+    public  abstract BigInteger getExponent();
+    public  abstract BigInteger getModulo();
 }

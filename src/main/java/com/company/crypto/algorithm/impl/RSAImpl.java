@@ -4,11 +4,10 @@ import com.company.algebra.prime.PrimeChecker;
 import com.company.algebra.prime.PrimeCheckerFabric;
 import com.company.algebra.prime.PrimeCheckerType;
 import com.company.crypto.algorithm.RSA;
-import lombok.Data;
 
 import java.math.BigInteger;
 
-public final class RSAImpl implements RSA {
+public final class RSAImpl extends RSA {
     public static RSA getInstance(PrimeCheckerType type, double precision, int primeNumberLength) {
         final double minPrecision = 0.5;
         final double maxPrecision = 1.0;
@@ -22,15 +21,14 @@ public final class RSAImpl implements RSA {
         }
         return new RSAImpl(type, precision, primeNumberLength);
     }
-    
+
     private final OpenKeyGenerator openKeyGenerator;
     private OpenKey openKey;
 
     private RSAImpl(PrimeCheckerType type, double precision, int primeNumberLength) {
         this.openKeyGenerator = new OpenKeyGenerator(type, precision, primeNumberLength);
-        this.openKey = this.openKeyGenerator.generate();
+        this.openKey = this.openKeyGenerator.generateOpenKey();
     }
-
 
     @Override
     public byte[] encode(byte[] array, BigInteger exponent, BigInteger modulo) {
@@ -44,26 +42,20 @@ public final class RSAImpl implements RSA {
 
     @Override
     public void regenerateOpenKey() {
-        this.openKey = this.openKeyGenerator.generate();
+        this.openKey = this.openKeyGenerator.generateOpenKey();
     }
 
     @Override
     public BigInteger getExponent() {
-        return this.openKey.exponent;
+        return this.openKey.getExponent();
     }
 
     @Override
     public BigInteger getModulo() {
-        return this.openKey.modulo;
+        return this.openKey.getModulo();
     }
 
-
-    class OpenKey {
-        private BigInteger exponent;
-        private BigInteger modulo;
-    }
-
-    class OpenKeyGenerator {
+    static class OpenKeyGenerator {
         private final PrimeChecker primeChecker;
         private final double precision;
         private final int primeNumberLength;
@@ -74,7 +66,7 @@ public final class RSAImpl implements RSA {
             this.primeNumberLength = primeNumberLength;
         }
 
-        public OpenKey generate() {
+        public OpenKey generateOpenKey() {
             return new OpenKey();
         }
     }
