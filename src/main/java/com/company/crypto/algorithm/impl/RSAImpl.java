@@ -8,7 +8,6 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigInteger;
-import java.security.PublicKey;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Objects;
@@ -25,11 +24,10 @@ public final class RSAImpl extends RSA {
             throw new IllegalArgumentException("Wrong precision:" + precision);
         }
 
-        // TODO
-//        final int minLength = 12;
-//        if (primeNumberLength < minLength) {
-//            throw new IllegalArgumentException("Too small length of prime number:" + primeNumberLength);
-//        }
+        final int minLength = 512;
+        if (primeNumberLength < minLength) {
+            throw new IllegalArgumentException("Too small length of prime number:" + primeNumberLength);
+        }
         return new RSAImpl(type, precision, primeNumberLength);
     }
 
@@ -69,6 +67,9 @@ public final class RSAImpl extends RSA {
 
         BigInteger message = new BigInteger(array);
         log.info("message:" + message);
+        if (message.bitLength() > this.n.bitLength()) {
+            throw new IllegalArgumentException("Too big message:" + message);
+        }
 
         BigInteger newMessage = message.modPow(exponent, modulo);
         log.info("New message:" + newMessage);
@@ -104,6 +105,7 @@ public final class RSAImpl extends RSA {
     }
 
     class OpenKeyGenerator {
+        private static final int MIN_PERCENT_NUMBER_OF_DIFFERENT_BITS = 35;
         private final PrimeChecker primeChecker;
         private final double precision;
         private final int primeNumberLength;
@@ -114,9 +116,8 @@ public final class RSAImpl extends RSA {
             this.primeChecker = PrimeCheckerFabric.getInstance(type);
             this.precision = precision;
             this.primeNumberLength = primeNumberLength;
-            this.minNumberOfDifferentBits = primeNumberLength / 100 * 20;
+            this.minNumberOfDifferentBits = primeNumberLength / 100 * MIN_PERCENT_NUMBER_OF_DIFFERENT_BITS;
         }
-
 
         public void generateOpenKey() {
             RSAImpl.this.p = generateP();
@@ -132,20 +133,18 @@ public final class RSAImpl extends RSA {
         }
 
         private BigInteger generateP() {
-            return BigInteger.probablePrime(primeNumberLength, new Random());
-//            BitSet pBitSet = new BitSet(primeNumberLength);
-//            pBitSet.set(0, true);
-//            pBitSet.set(primeNumberLength - 1, true);
-//            pBitSet.set(primeNumberLength - 1 - minNumberOfDifferentBits, primeNumberLength - 1);
-//            return generateRandomEvenDigitFromBitSet(pBitSet);
+            BitSet pBitSet = new BitSet(primeNumberLength);
+            pBitSet.set(0, true);
+            pBitSet.set(primeNumberLength - 1, true);
+            pBitSet.set(primeNumberLength - 1 - minNumberOfDifferentBits, primeNumberLength - 1);
+            return generateRandomEvenDigitFromBitSet(pBitSet);
         }
 
         private BigInteger generateQ() {
-            return BigInteger.probablePrime(primeNumberLength, new Random());
-//            BitSet qBitSet = new BitSet(primeNumberLength);
-//            qBitSet.set(0, true);
-//            qBitSet.set(primeNumberLength - 1, true);
-//            return generateRandomEvenDigitFromBitSet(qBitSet);
+            BitSet qBitSet = new BitSet(primeNumberLength);
+            qBitSet.set(0, true);
+            qBitSet.set(primeNumberLength - 1, true);
+            return generateRandomEvenDigitFromBitSet(qBitSet);
         }
 
         private BigInteger generateRandomEvenDigitFromBitSet(BitSet bitSet) {
@@ -159,7 +158,7 @@ public final class RSAImpl extends RSA {
                 byte[] bitSetByteArray = bitSet.toByteArray();
                 reverseArray(bitSetByteArray);
                 randomEvenDigit = new BigInteger(1, bitSetByteArray);
-            } while (primeChecker.isPrime(randomEvenDigit, precision));
+            } while (!primeChecker.isPrime(randomEvenDigit, precision));
             return randomEvenDigit;
         }
 
@@ -191,7 +190,6 @@ public final class RSAImpl extends RSA {
 
         public void generatePrivateKey() {
             BigInteger eulerFunctionValue = p.subtract(BigInteger.ONE).multiply(q.subtract(BigInteger.ONE));
-            //RSAImpl.this.d = RSAImpl.this.e.modInverse(eulerFunctionValue);
             EEATuple eeaTuple = EEA(eulerFunctionValue, RSAImpl.this.e);
             if (RSAImpl.this.e.multiply(eeaTuple.x).mod(eulerFunctionValue).equals(BigInteger.ONE)) {
                 RSAImpl.this.d = eeaTuple.x;
