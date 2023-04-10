@@ -25,10 +25,11 @@ public final class RSAImpl extends RSA {
             throw new IllegalArgumentException("Wrong precision:" + precision);
         }
 
-        final int minLength = 512;
-        if (primeNumberLength < minLength) {
-            throw new IllegalArgumentException("Too small length of prime number:" + primeNumberLength);
-        }
+        // TODO
+//        final int minLength = 12;
+//        if (primeNumberLength < minLength) {
+//            throw new IllegalArgumentException("Too small length of prime number:" + primeNumberLength);
+//        }
         return new RSAImpl(type, precision, primeNumberLength);
     }
 
@@ -47,25 +48,31 @@ public final class RSAImpl extends RSA {
 
     @Override
     public byte[] encode(byte[] array, BigInteger exponent, BigInteger modulo) {
-        return doOperation(array, exponent, modulo);
-    }
-
-    @Override
-    public byte[] decode(byte[] array) {
-        return doOperation(array, this.d, this.n);
-    }
-
-    private byte[] doOperation(byte[] array, BigInteger exponent, BigInteger modulo) {
         Objects.requireNonNull(array);
         if (array.length == 0) {
             return new byte[0];
         }
+        return doOperation(Arrays.copyOf(array, array.length), exponent, modulo);
+    }
 
-        byte[] copyArray = Arrays.copyOf(array, array.length);
-        reverseArray(copyArray);
+    @Override
+    public byte[] decode(byte[] array) {
+        Objects.requireNonNull(array);
+        if (array.length == 0) {
+            return new byte[0];
+        }
+        return doOperation(Arrays.copyOf(array, array.length), this.d, this.n);
+    }
 
-        BigInteger message = new BigInteger(copyArray);
+    private byte[] doOperation(byte[] array, BigInteger exponent, BigInteger modulo) {
+        reverseArray(array);
+
+        BigInteger message = new BigInteger(array);
+        log.info("message:" + message);
+
         BigInteger newMessage = message.modPow(exponent, modulo);
+        log.info("New message:" + newMessage);
+
         byte[] decodedMessageBytes = newMessage.toByteArray();
         reverseArray(decodedMessageBytes);
 
@@ -97,18 +104,17 @@ public final class RSAImpl extends RSA {
     }
 
     class OpenKeyGenerator {
-        private static final int MIN_NUMBER_OF_DIFFERENT_BITS = 256;
-
         private final PrimeChecker primeChecker;
         private final double precision;
         private final int primeNumberLength;
+        private final int minNumberOfDifferentBits;
         private final Random random = new Random();
-
 
         public OpenKeyGenerator(PrimeCheckerType type, double precision, int primeNumberLength) {
             this.primeChecker = PrimeCheckerFabric.getInstance(type);
             this.precision = precision;
             this.primeNumberLength = primeNumberLength;
+            this.minNumberOfDifferentBits = primeNumberLength / 100 * 20;
         }
 
 
@@ -126,25 +132,27 @@ public final class RSAImpl extends RSA {
         }
 
         private BigInteger generateP() {
-            BitSet pBitSet = new BitSet(primeNumberLength);
-            pBitSet.set(0, true);
-            pBitSet.set(primeNumberLength - 1, true);
-            pBitSet.set(primeNumberLength - 1 - MIN_NUMBER_OF_DIFFERENT_BITS, primeNumberLength - 1);
-            return generateRandomEvenDigitFromBitSet(pBitSet);
+            return BigInteger.probablePrime(primeNumberLength, new Random());
+//            BitSet pBitSet = new BitSet(primeNumberLength);
+//            pBitSet.set(0, true);
+//            pBitSet.set(primeNumberLength - 1, true);
+//            pBitSet.set(primeNumberLength - 1 - minNumberOfDifferentBits, primeNumberLength - 1);
+//            return generateRandomEvenDigitFromBitSet(pBitSet);
         }
 
         private BigInteger generateQ() {
-            BitSet qBitSet = new BitSet(primeNumberLength);
-            qBitSet.set(0, true);
-            qBitSet.set(primeNumberLength - 1, true);
-            return generateRandomEvenDigitFromBitSet(qBitSet);
+            return BigInteger.probablePrime(primeNumberLength, new Random());
+//            BitSet qBitSet = new BitSet(primeNumberLength);
+//            qBitSet.set(0, true);
+//            qBitSet.set(primeNumberLength - 1, true);
+//            return generateRandomEvenDigitFromBitSet(qBitSet);
         }
 
         private BigInteger generateRandomEvenDigitFromBitSet(BitSet bitSet) {
             BigInteger randomEvenDigit;
             do {
                 int i = 1;
-                for (; i < primeNumberLength - 1 - MIN_NUMBER_OF_DIFFERENT_BITS; i++) {
+                for (; i < primeNumberLength - 1 - minNumberOfDifferentBits; i++) {
                     bitSet.set(i, ThreadLocalRandom.current().nextBoolean());
                 }
 
@@ -183,9 +191,14 @@ public final class RSAImpl extends RSA {
 
         public void generatePrivateKey() {
             BigInteger eulerFunctionValue = p.subtract(BigInteger.ONE).multiply(q.subtract(BigInteger.ONE));
-            RSAImpl.this.d = RSAImpl.this.e.modInverse(eulerFunctionValue);
-            log.info("Generate d:" + d);
-            // TODO: обратное
+            //RSAImpl.this.d = RSAImpl.this.e.modInverse(eulerFunctionValue);
+            EEATuple eeaTuple = EEA(eulerFunctionValue, RSAImpl.this.e);
+            if (RSAImpl.this.e.multiply(eeaTuple.x).mod(eulerFunctionValue).equals(BigInteger.ONE)) {
+                RSAImpl.this.d = eeaTuple.x;
+            } else {
+                RSAImpl.this.d = eeaTuple.y;
+            }
+            log.info("Generate d:" + RSAImpl.this.d);
         }
 
         @AllArgsConstructor
@@ -195,8 +208,16 @@ public final class RSAImpl extends RSA {
             BigInteger y;
         }
 
-//        EEATuple EEA(BigInteger a, BigInteger b) {
-//
-//        }
+        EEATuple EEA(BigInteger a, BigInteger b) {
+            if (b.equals(BigInteger.ZERO)) {
+                return new EEATuple(a, BigInteger.ONE, BigInteger.ZERO);
+            }
+            EEATuple eeaTuple = EEA(b, a.mod(b));
+
+            BigInteger d = eeaTuple.d;
+            BigInteger x = eeaTuple.x;
+            BigInteger y = eeaTuple.y;
+            return new EEATuple(d, y, x.subtract(y.multiply(a.divide(b))));
+        }
     }
 }
