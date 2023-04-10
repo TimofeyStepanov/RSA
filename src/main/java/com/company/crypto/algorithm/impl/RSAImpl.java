@@ -4,6 +4,9 @@ import com.company.algebra.prime.PrimeChecker;
 import com.company.algebra.prime.PrimeCheckerFabric;
 import com.company.algebra.prime.PrimeCheckerType;
 import com.company.crypto.algorithm.RSA;
+import com.company.crypto.algorithm.exception.DangerOfHastadAttackException;
+import com.company.crypto.db.DBForEncodedMessages;
+import com.company.crypto.db.impl.DBForEncodedMessagesImpl;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -13,7 +16,6 @@ import java.util.BitSet;
 import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
-
 
 @Slf4j
 public final class RSAImpl extends RSA {
@@ -39,33 +41,52 @@ public final class RSAImpl extends RSA {
     private BigInteger d;
 
     private RSAImpl(PrimeCheckerType type, double precision, int primeNumberLength) {
+        super(new DBForEncodedMessagesImpl());
         this.openKeyGenerator = new OpenKeyGenerator(type, precision, primeNumberLength);
-        this.openKeyGenerator.generateOpenKey();
-        this.openKeyGenerator.generatePrivateKey();
+        this.generateOpenAndPrivateKey();
     }
 
+    private void generateOpenAndPrivateKey() {
+        do {
+            this.openKeyGenerator.generateOpenKey();
+            this.openKeyGenerator.generatePrivateKey();
+        } while (!privateExponentIsCorrectForWienerAttack());
+    }
+
+    private boolean privateExponentIsCorrectForWienerAttack() {
+        int lengthOfD = RSAImpl.this.d.bitLength();
+        int lengthOfN = RSAImpl.this.n.bitLength();
+        return lengthOfD > 1.0 / 3 * Math.pow(lengthOfN, 1.0 / 4);
+    }
+
+
     @Override
-    public byte[] encode(byte[] array, BigInteger exponent, BigInteger modulo) {
+    public byte[] encode(byte[] array, BigInteger exponent, BigInteger modulo) throws DangerOfHastadAttackException  {
         Objects.requireNonNull(array);
         if (array.length == 0) {
             return new byte[0];
         }
-        return doOperation(Arrays.copyOf(array, array.length), exponent, modulo);
-    }
 
-    @Override
-    public byte[] decode(byte[] array) {
-        Objects.requireNonNull(array);
-        if (array.length == 0) {
-            return new byte[0];
+        byte[] copiedArray = Arrays.copyOf(array, array.length);
+        reverseArray(copiedArray);
+        BigInteger message = new BigInteger(copiedArray);
+
+        super.dataBase.save(message, new DBForEncodedMessages.OpenKey(exponent, modulo));
+        if (hastadAttackIsPossible(message, exponent)) {
+            throw new DangerOfHastadAttackException();
         }
-        return doOperation(Arrays.copyOf(array, array.length), this.d, this.n);
+
+        return doOperation(message, exponent, modulo);
     }
 
-    private byte[] doOperation(byte[] array, BigInteger exponent, BigInteger modulo) {
-        reverseArray(array);
+    private boolean hastadAttackIsPossible(BigInteger message, BigInteger exponent) {
+        BigInteger numberOfMessagesEncodedWithSameExponentAndDifferentModules =
+                dataBase.getNumberOfMessageWithSameExponentAndDifferentModulo(message, exponent);
 
-        BigInteger message = new BigInteger(array);
+        return numberOfMessagesEncodedWithSameExponentAndDifferentModules.equals(exponent);
+    }
+
+    private byte[] doOperation(BigInteger message, BigInteger exponent, BigInteger modulo) {
         log.info("message:" + message);
         if (message.bitLength() > this.n.bitLength()) {
             throw new IllegalArgumentException("Too big message:" + message);
@@ -80,20 +101,18 @@ public final class RSAImpl extends RSA {
         return decodedMessageBytes;
     }
 
-    @Override
-    public void regenerateOpenKey() {
-        this.openKeyGenerator.generateOpenKey();
-        this.openKeyGenerator.generatePrivateKey();
-    }
 
     @Override
-    public BigInteger getExponent() {
-        return this.e;
-    }
+    public byte[] decode(byte[] array) {
+        Objects.requireNonNull(array);
+        if (array.length == 0) {
+            return new byte[0];
+        }
 
-    @Override
-    public BigInteger getModulo() {
-        return this.n;
+        byte[] copiedArray = Arrays.copyOf(array, array.length);
+        reverseArray(copiedArray);
+        BigInteger message = new BigInteger(copiedArray);
+        return doOperation(message, this.d, this.n);
     }
 
     private void reverseArray(byte[] array) {
@@ -103,6 +122,25 @@ public final class RSAImpl extends RSA {
             array[array.length - 1 - i] = tmp;
         }
     }
+
+
+    @Override
+    public void regenerateOpenKey() {
+        this.generateOpenAndPrivateKey();
+    }
+
+
+    @Override
+    public BigInteger getExponent() {
+        return this.e;
+    }
+
+
+    @Override
+    public BigInteger getModulo() {
+        return this.n;
+    }
+
 
     class OpenKeyGenerator {
         private static final int MIN_PERCENT_NUMBER_OF_DIFFERENT_BITS = 35;
@@ -118,6 +156,7 @@ public final class RSAImpl extends RSA {
             this.primeNumberLength = primeNumberLength;
             this.minNumberOfDifferentBits = primeNumberLength / 100 * MIN_PERCENT_NUMBER_OF_DIFFERENT_BITS;
         }
+
 
         public void generateOpenKey() {
             RSAImpl.this.p = generateP();
@@ -188,24 +227,22 @@ public final class RSAImpl extends RSA {
         }
 
 
-        public void generatePrivateKey() {
-            do {
-                BigInteger eulerFunctionValue = p.subtract(BigInteger.ONE).multiply(q.subtract(BigInteger.ONE));
-                EEATuple eeaTuple = EEA(eulerFunctionValue, RSAImpl.this.e);
-                if (RSAImpl.this.e.multiply(eeaTuple.x).mod(eulerFunctionValue).equals(BigInteger.ONE)) {
-                    RSAImpl.this.d = eeaTuple.x;
-                } else {
-                    RSAImpl.this.d = eeaTuple.y;
-                }
-            } while (!privateExponentIsCorrectForWienerAttack());
-            log.info("Generate d:" + RSAImpl.this.d);
-        }
-
         @AllArgsConstructor
         private class EEATuple {
             BigInteger d;
             BigInteger x;
             BigInteger y;
+        }
+
+        public void generatePrivateKey() {
+            BigInteger eulerFunctionValue = p.subtract(BigInteger.ONE).multiply(q.subtract(BigInteger.ONE));
+            EEATuple eeaTuple = EEA(eulerFunctionValue, RSAImpl.this.e);
+            if (RSAImpl.this.e.multiply(eeaTuple.x).mod(eulerFunctionValue).equals(BigInteger.ONE)) {
+                RSAImpl.this.d = eeaTuple.x;
+            } else {
+                RSAImpl.this.d = eeaTuple.y;
+            }
+            log.info("Generate d:" + RSAImpl.this.d);
         }
 
         private EEATuple EEA(BigInteger a, BigInteger b) {
@@ -218,12 +255,6 @@ public final class RSAImpl extends RSA {
             BigInteger x = eeaTuple.x;
             BigInteger y = eeaTuple.y;
             return new EEATuple(d, y, x.subtract(y.multiply(a.divide(b))));
-        }
-
-        private boolean privateExponentIsCorrectForWienerAttack() {
-            int lengthOfD = RSAImpl.this.d.bitLength();
-            int lengthOfN = RSAImpl.this.n.bitLength();
-            return lengthOfD > 1.0 / 3 * Math.pow(lengthOfN, 1.0 / 4);
         }
     }
 }

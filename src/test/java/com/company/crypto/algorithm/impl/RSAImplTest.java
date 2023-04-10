@@ -2,6 +2,7 @@ package com.company.crypto.algorithm.impl;
 
 import com.company.algebra.prime.PrimeCheckerType;
 import com.company.crypto.algorithm.RSA;
+import com.company.crypto.algorithm.exception.DangerOfHastadAttackException;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 
@@ -12,7 +13,7 @@ class RSAImplTest {
     RSA rsa = RSAImpl.getInstance(PrimeCheckerType.SOLOVEY_STRASSEN, 0.99999999, 1024);
 
     @Test
-    void testMock() {
+    void testMock() throws DangerOfHastadAttackException {
         byte[] message = {5};
         for (int i = 0; i < 100; i++) {
             log.info("Message to encode:" + message[0]);
@@ -32,7 +33,7 @@ class RSAImplTest {
     }
 
     @Test
-    void testString() {
+    void testString() throws DangerOfHastadAttackException {
         String toEncode = "Hello world!";
 
         for (int i = 0; i < 100; i++) {
@@ -51,7 +52,7 @@ class RSAImplTest {
     }
 
     @Test
-    void testString1() {
+    void testString1() throws DangerOfHastadAttackException {
         String toEncode = "My name is Timofey Stepanov. I'm 20 years old!";
 
         for (int i = 0; i < 100; i++) {

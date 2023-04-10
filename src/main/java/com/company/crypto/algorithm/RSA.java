@@ -1,26 +1,20 @@
 package com.company.crypto.algorithm;
 
+import com.company.crypto.algorithm.exception.DangerOfHastadAttackException;
+import com.company.crypto.db.DBForEncodedMessages;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 
 import java.math.BigInteger;
 
 public abstract class RSA {
-//    @Data
-//    protected static class OpenKey {
-//        private final BigInteger exponent;
-//        private final BigInteger modulo;
-//    }
-//
-//    @Data
-//    protected static class PrivateKey {
-//        private final BigInteger p;
-//        private final BigInteger q;
-//        private final BigInteger n;
-//        private final BigInteger d;
-//    }
+    protected DBForEncodedMessages dataBase;
 
-    public abstract byte[] encode(byte[] array, BigInteger exponent, BigInteger modulo);
+    protected RSA(DBForEncodedMessages dataBase) {
+        this.dataBase = dataBase;
+    }
+
+    public abstract byte[] encode(byte[] array, BigInteger exponent, BigInteger modulo) throws DangerOfHastadAttackException;
     public abstract byte[] decode(byte[] array);
 
     public abstract void regenerateOpenKey();
