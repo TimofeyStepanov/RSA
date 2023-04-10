@@ -1,7 +1,7 @@
 package com.company.algebra.prime.impl;
 
 import com.company.algebra.prime.PrimeChecker;
-import com.company.algebra.residue.impl.RSAMathImpl;
+import com.company.algebra.residue.impl.RSAMath;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
@@ -9,7 +9,7 @@ import java.math.BigInteger;
 import static org.junit.jupiter.api.Assertions.*;
 
 class SolovayStrassenPrimeCheckerTest {
-    PrimeChecker primeChecker = new SolovayStrassenPrimeChecker(new RSAMathImpl());
+    PrimeChecker primeChecker = new SolovayStrassenPrimeChecker(new RSAMath());
 
     @Test
     void checkKramer() {

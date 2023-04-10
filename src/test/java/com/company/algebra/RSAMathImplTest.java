@@ -1,14 +1,13 @@
 package com.company.algebra;
 
-import com.company.algebra.residue.RSAMath;
-import com.company.algebra.residue.impl.RSAMathImpl;
+import com.company.algebra.residue.impl.RSAMath;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
 
 
 class RSAMathImplTest {
-    RSAMath rsaMath = new RSAMathImpl();
+    RSAMath rsaMath = new RSAMath();
 
     @Test
     void testLegendre() {

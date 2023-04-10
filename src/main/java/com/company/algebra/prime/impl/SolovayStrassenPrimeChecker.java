@@ -1,7 +1,7 @@
 package com.company.algebra.prime.impl;
 
 import com.company.algebra.prime.PrimeChecker;
-import com.company.algebra.residue.RSAMath;
+import com.company.algebra.residue.impl.RSAMath;
 import lombok.RequiredArgsConstructor;
 
 import java.math.BigInteger;

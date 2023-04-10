@@ -3,9 +3,8 @@ package com.company.algebra.prime;
 import java.math.BigInteger;
 import java.util.Random;
 
-public abstract class PrimeChecker {
+public abstract class PrimeChecker implements Cloneable {
     private final Random random = new Random();
-
 
     public boolean isPrime(BigInteger digitToCheck, double precision) {
         this.checkPrecision(precision);
@@ -62,5 +61,14 @@ public abstract class PrimeChecker {
             return b;
         }
         return gcd(b.mod(a), a);
+    }
+
+    @Override
+    public PrimeChecker clone() {
+        try {
+            return (PrimeChecker) super.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new IllegalCallerException("Can't do clone");
+        }
     }
 }
