@@ -1,8 +1,5 @@
 package com.company.crypto.algorithm;
 
-import com.company.algebra.prime.PrimeChecker;
-import com.company.algebra.prime.PrimeCheckerFabric;
-import com.company.algebra.prime.PrimeCheckerType;
 import lombok.Data;
 
 import java.math.BigInteger;
