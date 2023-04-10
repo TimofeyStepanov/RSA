@@ -189,24 +189,26 @@ public final class RSAImpl extends RSA {
 
 
         public void generatePrivateKey() {
-            BigInteger eulerFunctionValue = p.subtract(BigInteger.ONE).multiply(q.subtract(BigInteger.ONE));
-            EEATuple eeaTuple = EEA(eulerFunctionValue, RSAImpl.this.e);
-            if (RSAImpl.this.e.multiply(eeaTuple.x).mod(eulerFunctionValue).equals(BigInteger.ONE)) {
-                RSAImpl.this.d = eeaTuple.x;
-            } else {
-                RSAImpl.this.d = eeaTuple.y;
-            }
+            do {
+                BigInteger eulerFunctionValue = p.subtract(BigInteger.ONE).multiply(q.subtract(BigInteger.ONE));
+                EEATuple eeaTuple = EEA(eulerFunctionValue, RSAImpl.this.e);
+                if (RSAImpl.this.e.multiply(eeaTuple.x).mod(eulerFunctionValue).equals(BigInteger.ONE)) {
+                    RSAImpl.this.d = eeaTuple.x;
+                } else {
+                    RSAImpl.this.d = eeaTuple.y;
+                }
+            } while (!privateExponentIsCorrectForWienerAttack());
             log.info("Generate d:" + RSAImpl.this.d);
         }
 
         @AllArgsConstructor
-        class EEATuple {
+        private class EEATuple {
             BigInteger d;
             BigInteger x;
             BigInteger y;
         }
 
-        EEATuple EEA(BigInteger a, BigInteger b) {
+        private EEATuple EEA(BigInteger a, BigInteger b) {
             if (b.equals(BigInteger.ZERO)) {
                 return new EEATuple(a, BigInteger.ONE, BigInteger.ZERO);
             }
@@ -216,6 +218,12 @@ public final class RSAImpl extends RSA {
             BigInteger x = eeaTuple.x;
             BigInteger y = eeaTuple.y;
             return new EEATuple(d, y, x.subtract(y.multiply(a.divide(b))));
+        }
+
+        private boolean privateExponentIsCorrectForWienerAttack() {
+            int lengthOfD = RSAImpl.this.d.bitLength();
+            int lengthOfN = RSAImpl.this.n.bitLength();
+            return lengthOfD > 1.0 / 3 * Math.pow(lengthOfN, 1.0 / 4);
         }
     }
 }

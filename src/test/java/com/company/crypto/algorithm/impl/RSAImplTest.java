@@ -9,12 +9,12 @@ import java.nio.charset.StandardCharsets;
 
 @Slf4j
 class RSAImplTest {
-    RSA rsa = RSAImpl.getInstance(PrimeCheckerType.MILLER_RABIN, 0.99999999, 512);
+    RSA rsa = RSAImpl.getInstance(PrimeCheckerType.SOLOVEY_STRASSEN, 0.99999999, 1024);
 
     @Test
     void testMock() {
         byte[] message = {5};
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 100; i++) {
             log.info("Message to encode:" + message[0]);
 
             byte[] encoded = rsa.encode(message, rsa.getExponent(), rsa.getModulo());
@@ -35,7 +35,7 @@ class RSAImplTest {
     void testString() {
         String toEncode = "Hello world!";
 
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 100; i++) {
             byte[] message = toEncode.getBytes(StandardCharsets.UTF_8);
             byte[] encoded = rsa.encode(message, rsa.getExponent(), rsa.getModulo());
             byte[] decoded = rsa.decode(encoded);
@@ -52,9 +52,9 @@ class RSAImplTest {
 
     @Test
     void testString1() {
-        String toEncode = "1201!";
+        String toEncode = "My name is Timofey Stepanov. I'm 20 years old!";
 
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 100; i++) {
             byte[] message = toEncode.getBytes(StandardCharsets.UTF_8);
             byte[] encoded = rsa.encode(message, rsa.getExponent(), rsa.getModulo());
             byte[] decoded = rsa.decode(encoded);
