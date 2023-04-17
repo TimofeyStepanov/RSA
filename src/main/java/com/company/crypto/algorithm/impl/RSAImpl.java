@@ -67,15 +67,18 @@ public final class RSAImpl extends RSA {
             return new byte[0];
         }
 
-        byte[] copiedArray = Arrays.copyOf(array, array.length);
-        reverseArray(copiedArray);
-        BigInteger message = new BigInteger(1, copiedArray);
-
+        BigInteger message = translateInputByteArrayToBigInteger(array);
         super.dataBase.save(message, new DBForEncodedMessages.OpenKey(exponent, modulo));
         if (hastadAttackIsPossible(message, exponent)) {
             throw new DangerOfHastadAttackException();
         }
-        return doOperation(message, exponent);
+        return doOperation(message, exponent, modulo);
+    }
+
+    private BigInteger translateInputByteArrayToBigInteger(byte[] array) {
+        byte[] copiedArray = Arrays.copyOf(array, array.length);
+        reverseArray(copiedArray);
+        return new BigInteger(1, copiedArray);
     }
 
     private boolean hastadAttackIsPossible(BigInteger message, BigInteger exponent) {
@@ -85,20 +88,20 @@ public final class RSAImpl extends RSA {
         return numberOfMessagesEncodedWithSameExponentAndDifferentModules.equals(exponent);
     }
 
-    private byte[] doOperation(BigInteger message, BigInteger exponent) {
+    private byte[] doOperation(BigInteger message, BigInteger exponent, BigInteger modulo) {
         log.info("message:" + message);
-        if (message.bitLength() > this.n.bitLength()) {
+        if (message.bitLength() > modulo.bitLength()) {
             throw new IllegalArgumentException("Too big message:" + message);
         }
 
-        BigInteger newMessage = message.modPow(exponent, this.n);
+        BigInteger newMessage = message.modPow(exponent, modulo);
         log.info("New message:" + newMessage);
 
-        byte[] decodedMessageBytes = newMessage.toByteArray();
-        reverseArray(decodedMessageBytes);
+        byte[] newMessageBytes = newMessage.toByteArray();
+        reverseArray(newMessageBytes);
 
-        decodedMessageBytes = deleteLastElementOfArrayIfItZero(decodedMessageBytes);
-        return decodedMessageBytes;
+        newMessageBytes = deleteLastElementOfArrayIfItZero(newMessageBytes);
+        return newMessageBytes;
     }
 
     private byte[] deleteLastElementOfArrayIfItZero(byte[] decodedMessageBytes) {
@@ -108,7 +111,6 @@ public final class RSAImpl extends RSA {
         return decodedMessageBytes;
     }
 
-
     @Override
     public byte[] decode(byte[] array) {
         Objects.requireNonNull(array);
@@ -116,10 +118,8 @@ public final class RSAImpl extends RSA {
             return new byte[0];
         }
 
-        byte[] copiedArray = Arrays.copyOf(array, array.length);
-        reverseArray(copiedArray);
-        BigInteger message = new BigInteger(1, copiedArray);
-        return doOperation(message, this.d);
+        BigInteger message = translateInputByteArrayToBigInteger(array);
+        return doOperation(message, this.d, this.n);
     }
 
     private void reverseArray(byte[] array) {

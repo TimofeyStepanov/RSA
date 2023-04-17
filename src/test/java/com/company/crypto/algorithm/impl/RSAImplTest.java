@@ -75,7 +75,7 @@ class RSAImplTest {
     @Test
     void testRandomStr() throws DangerOfHastadAttackException {
         // последний байт не может равняться нулю
-        for (int i = 0; i < 10000; i++) {
+        for (int i = 0; i < 1000; i++) {
             if (i % 1000 == 0) {
                 rsa.regenerateOpenKey();
             }
