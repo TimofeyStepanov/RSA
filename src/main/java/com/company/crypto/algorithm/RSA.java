@@ -2,8 +2,6 @@ package com.company.crypto.algorithm;
 
 import com.company.crypto.algorithm.exception.DangerOfHastadAttackException;
 import com.company.crypto.db.DBForEncodedMessages;
-import lombok.Data;
-import lombok.RequiredArgsConstructor;
 
 import java.math.BigInteger;
 

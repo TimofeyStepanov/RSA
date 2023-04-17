@@ -69,14 +69,13 @@ public final class RSAImpl extends RSA {
 
         byte[] copiedArray = Arrays.copyOf(array, array.length);
         reverseArray(copiedArray);
-        BigInteger message = new BigInteger(copiedArray);
+        BigInteger message = new BigInteger(1, copiedArray);
 
         super.dataBase.save(message, new DBForEncodedMessages.OpenKey(exponent, modulo));
         if (hastadAttackIsPossible(message, exponent)) {
             throw new DangerOfHastadAttackException();
         }
-
-        return doOperation(message, exponent, modulo);
+        return doOperation(message, exponent);
     }
 
     private boolean hastadAttackIsPossible(BigInteger message, BigInteger exponent) {
@@ -86,18 +85,26 @@ public final class RSAImpl extends RSA {
         return numberOfMessagesEncodedWithSameExponentAndDifferentModules.equals(exponent);
     }
 
-    private byte[] doOperation(BigInteger message, BigInteger exponent, BigInteger modulo) {
+    private byte[] doOperation(BigInteger message, BigInteger exponent) {
         log.info("message:" + message);
         if (message.bitLength() > this.n.bitLength()) {
             throw new IllegalArgumentException("Too big message:" + message);
         }
 
-        BigInteger newMessage = message.modPow(exponent, modulo);
+        BigInteger newMessage = message.modPow(exponent, this.n);
         log.info("New message:" + newMessage);
 
         byte[] decodedMessageBytes = newMessage.toByteArray();
         reverseArray(decodedMessageBytes);
 
+        decodedMessageBytes = deleteLastElementOfArrayIfItZero(decodedMessageBytes);
+        return decodedMessageBytes;
+    }
+
+    private byte[] deleteLastElementOfArrayIfItZero(byte[] decodedMessageBytes) {
+        if (decodedMessageBytes.length > 1 && decodedMessageBytes[decodedMessageBytes.length - 1] == 0) {
+            return Arrays.copyOfRange(decodedMessageBytes, 0, decodedMessageBytes.length - 1);
+        }
         return decodedMessageBytes;
     }
 
@@ -111,8 +118,8 @@ public final class RSAImpl extends RSA {
 
         byte[] copiedArray = Arrays.copyOf(array, array.length);
         reverseArray(copiedArray);
-        BigInteger message = new BigInteger(copiedArray);
-        return doOperation(message, this.d, this.n);
+        BigInteger message = new BigInteger(1, copiedArray);
+        return doOperation(message, this.d);
     }
 
     private void reverseArray(byte[] array) {
@@ -156,7 +163,6 @@ public final class RSAImpl extends RSA {
             this.primeNumberLength = primeNumberLength;
             this.minNumberOfDifferentBits = primeNumberLength / 100 * MIN_PERCENT_NUMBER_OF_DIFFERENT_BITS;
         }
-
 
         public void generateOpenKey() {
             RSAImpl.this.p = generateP();
@@ -242,7 +248,10 @@ public final class RSAImpl extends RSA {
             } else {
                 RSAImpl.this.d = eeaTuple.y;
             }
+
+            //RSAImpl.this.d = e.modInverse(eulerFunctionValue);
             log.info("Generate d:" + RSAImpl.this.d);
+            log.info("e * d = " + RSAImpl.this.d.multiply(e).mod(eulerFunctionValue));
         }
 
         private EEATuple EEA(BigInteger a, BigInteger b) {
