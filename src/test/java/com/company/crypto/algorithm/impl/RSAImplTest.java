@@ -75,7 +75,7 @@ class RSAImplTest {
     @Test
     void testRandomStr() throws DangerOfHastadAttackException {
         // последний байт не может равняться нулю
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 10000; i++) {
             if (i % 1000 == 0) {
                 rsa.regenerateOpenKey();
             }
@@ -84,10 +84,11 @@ class RSAImplTest {
             byte[] message = new byte[randomDigit];
             for (int j = 0; j < message.length; j++) {
                 byte randomByte = (byte) ThreadLocalRandom.current().nextInt();
-                if (randomByte == 0) {
-                    randomByte++;
-                }
                 message[j] = randomByte;
+            }
+
+            if (message.length > 0 && message[message.length - 1] == 0) {
+                message[message.length - 1] = 1;
             }
 
             byte[] encoded = rsa.encode(message, rsa.getExponent(), rsa.getModulo());

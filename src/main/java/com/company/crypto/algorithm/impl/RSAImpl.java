@@ -90,7 +90,7 @@ public final class RSAImpl extends RSA {
 
     private byte[] doOperation(BigInteger message, BigInteger exponent, BigInteger modulo) {
         log.info("message:" + message);
-        if (message.bitLength() > modulo.bitLength()) {
+        if (message.compareTo(modulo) > 0) {
             throw new IllegalArgumentException("Too big message:" + message);
         }
 
@@ -182,17 +182,17 @@ public final class RSAImpl extends RSA {
             pBitSet.set(0, true);
             pBitSet.set(primeNumberLength - 1, true);
             pBitSet.set(primeNumberLength - 1 - minNumberOfDifferentBits, primeNumberLength - 1);
-            return generateRandomEvenDigitFromBitSet(pBitSet);
+            return generateRandomPrimeDigitFromBitSet(pBitSet);
         }
 
         private BigInteger generateQ() {
             BitSet qBitSet = new BitSet(primeNumberLength);
             qBitSet.set(0, true);
             qBitSet.set(primeNumberLength - 1, true);
-            return generateRandomEvenDigitFromBitSet(qBitSet);
+            return generateRandomPrimeDigitFromBitSet(qBitSet);
         }
 
-        private BigInteger generateRandomEvenDigitFromBitSet(BitSet bitSet) {
+        private BigInteger generateRandomPrimeDigitFromBitSet(BitSet bitSet) {
             BigInteger randomEvenDigit;
             do {
                 int i = 1;

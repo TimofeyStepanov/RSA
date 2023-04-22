@@ -1,12 +1,10 @@
 package com.company.algebra.prime.impl;
 
 import com.company.algebra.prime.PrimeChecker;
-import com.company.algebra.residue.impl.RSAMath;
+import com.company.algebra.residue.RSAMath;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class SolovayStrassenPrimeCheckerTest {
     PrimeChecker primeChecker = new SolovayStrassenPrimeChecker(new RSAMath());

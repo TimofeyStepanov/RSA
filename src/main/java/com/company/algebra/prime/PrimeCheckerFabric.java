@@ -3,7 +3,7 @@ package com.company.algebra.prime;
 import com.company.algebra.prime.impl.FermatPrimeChecker;
 import com.company.algebra.prime.impl.MillerRabinPrimeChecker;
 import com.company.algebra.prime.impl.SolovayStrassenPrimeChecker;
-import com.company.algebra.residue.impl.RSAMath;
+import com.company.algebra.residue.RSAMath;
 
 import java.util.Map;
 

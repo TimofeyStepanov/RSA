@@ -1,6 +1,6 @@
 package com.company.algebra;
 
-import com.company.algebra.residue.impl.RSAMath;
+import com.company.algebra.residue.RSAMath;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;

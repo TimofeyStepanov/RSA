@@ -1,11 +1,10 @@
-package com.company.algebra.residue.impl;
+package com.company.algebra.residue;
 
 
 import java.math.BigInteger;
 
 public final class RSAMath {
     public int getLegendreSymbol(BigInteger a, BigInteger p) {
-        // TODO: сheck p even and p != 2
         return countJacobiSymbol(a, p);
     }
 
